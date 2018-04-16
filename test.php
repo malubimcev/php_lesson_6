@@ -1,18 +1,34 @@
 <?php
 //test.php
-    $testResults = '';
+//Принимает в качестве GET-параметра номер теста и отображает форму теста.
+//Если форма отправлена, проверяет и показывает результат.
+    $testResults = '';//переменная для вывода результатов теста
     $fileName = '';
-    $json = '';
-    $data = [];
-    $fields = [];
+    $json = '';//
+    $data = [];//для декодированного json-файла
+    $fields = [];//
+    $lastTest = count(scandir('files/')) - 2;//максимальный номер теста
+    if ((empty($_GET['test_number'])) || ($_GET['test_number'] > $lastTest)) {
+        http_response_code(404);
+        echo '<div class="form-container"><h1>Cтраница не найдена!</h1></div>';
+        exit(1);
+    }
     if (isset($_GET['test_number'])) {
         $fileName = "test_".htmlspecialchars($_GET['test_number']).".json";
-        writeLog('$fileName='.$fileName);
         $json = file_get_contents($fileName);
         $data = json_decode($json, true);
     }
-    if (isset($_POST['isRight'])) {
-        $testResults = "<h2>Test results:</h2>";
+    if (isset($_POST)) {
+        $fields = array_values($_POST);
+        $sum = 0;//сумма для правильных ответов
+        $c = 0;//число ответов
+        foreach ($fields as $k => $v) {
+            if ($v == 'true') {
+               $sum++;
+            }
+            $c++;
+        }
+        $testResults = "<h2>Правильных ответов: $sum / $c</h2>";
     }
 ?>
 <!DOCTYPE html>
@@ -29,11 +45,12 @@
         <form action="<?php $_SERVER['PHP_SELF'];?>" method="post" class="test-form">
             <?php $q = 0;//инициализация счетчика вопросов для создания уникальных имен групп radio-переключателей
             foreach ($data['questions'] as $question): ?>
+
                 <fieldset class="question">
                 <legend class="question-legend"><?php echo $question['question']; $q++; ?></legend>
                 <?php foreach ($question['answers'] as $answer_key => $answer): ?>
                     <label class="test-answer"><?php echo $answer['answer']; ?>
-                        <input type="radio" name="<?php echo $q; ?>" value="<?php echo $answer['isRight']; ?>" /><br>
+                        <input type="radio" name="<?php echo "q$q"; ?>" value="<?php echo $answer['isRight']; ?>" /><br>
                     </label>
                 <?php endforeach; ?>
                 </fieldset>
@@ -43,6 +60,7 @@
         </div>
         <div class="form-container">
             <?php echo $testResults; ?>
+
         </div>
     </section>
   </body>
